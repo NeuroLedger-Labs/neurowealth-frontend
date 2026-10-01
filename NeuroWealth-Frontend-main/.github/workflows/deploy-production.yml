@@ -1,0 +1,58 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Validate environment variables
+        run: yarn validate:env
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_APP_ENV: production
+          NEXT_PUBLIC_APP_URL: ${{ secrets.PROD_APP_URL }}
+          WHATSAPP_APP_SECRET: ${{ secrets.PROD_WHATSAPP_APP_SECRET }}
+          WHATSAPP_VERIFY_TOKEN: ${{ secrets.PROD_WHATSAPP_VERIFY_TOKEN }}
+          WHATSAPP_ACCESS_TOKEN: ${{ secrets.PROD_WHATSAPP_ACCESS_TOKEN }}
+          WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.PROD_WHATSAPP_PHONE_NUMBER_ID }}
+          WHATSAPP_WABA_ID: ${{ secrets.PROD_WHATSAPP_WABA_ID }}
+          STELLAR_NETWORK: mainnet
+          STELLAR_HORIZON_URL: https://horizon.stellar.org
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Build
+        run: yarn build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_APP_ENV: production
+          NEXT_PUBLIC_APP_URL: ${{ secrets.PROD_APP_URL }}
+          STELLAR_NETWORK: mainnet
+          STELLAR_HORIZON_URL: https://horizon.stellar.org
+
+      - name: Deploy to Vercel (Production)
+        run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

@@ -1,0 +1,52 @@
+# Yarn is the package manager (see package.json). `yarn install` without --frozen-lockfile tolerates minor lock drift.
+name: Frontend CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_WEBHOOK_URL: "http://localhost:2000"
+      NEXT_PUBLIC_API_URL: "http://localhost:3001"
+      NEXT_PUBLIC_E2E_TESTING: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+
+      # Single source of truth for JSON config validation; see the
+      # validate:config script in package.json.
+      - name: Validate JSON config files
+        run: yarn validate:config
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Unit tests
+        run: yarn test
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Build
+        run: yarn build
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: E2E tests
+        run: yarn test:e2e
